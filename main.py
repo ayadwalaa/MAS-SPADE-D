@@ -1,4 +1,7 @@
 # This is a sample Python script.
+import matlab as matlab
+import scipy as scipy
+
 import agent
 import behaviour
 import pandas as pd
@@ -26,25 +29,35 @@ if __name__ == '__main__':
     df = pd.read_excel('temp_sample.xlsx', index_col=1)
     lightAgent.set(agent.LightingAgent, "lightAgent", df)
 
-    supAgent.__init__(agent.SupervisorAgent, "SPADE", "SPADE", False)
-    df = "READ FROM FUZZY CONTROLLER IN MATLAB"
-    supAgent.set(agent.SupervisorAgent, "supAgent", df)
-
     tempAgent.add_behaviour(agent.self, behaviour.OneShotBehaviour, None)
     lightAgent.add_behaviour(agent.self, behaviour.OneShotBehaviour, None)
     pplAgent.add_behaviour(agent.self, behaviour.OneShotBehaviour, None)
     supAgent.add_behaviour(agent.self, behaviour.FSMBehaviour, None)
 
     supAgent.start(agent.SupervisorAgent, True)
+    eng = matlab.engine.start_matlab
+    matlab.engine.find_matlab
+    matlab.engine.connect_matlab
+    eng.input(tempAgent.__getattribute__(agent.tempAgent,"values"), lightAgent.__getattribute__(agent.lightAgent,"values"), pplAgent.__getattribute__(agent.pplAgent,"values"))
+
+    supAgent.__init__(agent.SupervisorAgent, "SPADE", "SPADE", False)
+    df = scipy.io.loadmat('file.mat')
+    supAgent.set(agent.SupervisorAgent, "supAgent", df)
+
     while supAgent.is_alive(agent.SupervisorAgent):
-        if not tempAgent.is_alive(agent.TemperatureAgent):
+        df = scipy.io.loadmat('file.mat')
+        if not df is None:
+          supAgent.set(agent.SupervisorAgent, "supAgent", df)
+          if not tempAgent.is_alive(agent.TemperatureAgent):
             tempAgent.start(agent.TemperatureAgent, True)
-        if not pplAgent.is_alive(agent.PeopleAgent):
+          if not pplAgent.is_alive(agent.PeopleAgent):
             pplAgent.start(agent.PeopleAgent, True)
-        if not lightAgent.is_alive(agent.LightingAgent):
+           if not lightAgent.is_alive(agent.LightingAgent):
             lightAgent.start(agent.LightingAgent, True)
-
-
+        else:
+          supAgent.stop(supAgent.self)
+          tempAgent.stop(tempAgent.self)
+          pplAgent.stop(pplAgent.self)
 
 
 
